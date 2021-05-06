@@ -1,0 +1,18 @@
+{
+  "name": "bertdida/lk-lt-notifcation",
+  "description": "LeadKlozer's livetracker notification service.",
+  "type": "project",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "bertdida",
+      "email": "38489033+bertdida@users.noreply.github.com"
+    }
+  ],
+  "require": {},
+  "autoload": {
+    "psr-4": {
+      "LTN\\": "src/"
+    }
+  }
+}
