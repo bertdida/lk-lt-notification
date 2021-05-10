@@ -4,7 +4,7 @@ namespace LTN\Models;
 
 use LTN\Models\User;
 use LTN\Utils\Logger;
-use PHPMailer\PHPMailer\Exception;
+use PHPMailer\PHPMailer\Exception as PHPMailerException;
 use PHPMailer\PHPMailer\PHPMailer;
 use Twilio\Rest\Client;
 
@@ -68,7 +68,7 @@ class Config
             $mail->Body = $data['email_content'];
             $mail->AltBody = $data['text_content'];
             $mail->send();
-        } catch (Exception $e) {
+        } catch (PHPMailerException $e) {
             Logger::save($mail->ErrorInfo);
         }
     }
