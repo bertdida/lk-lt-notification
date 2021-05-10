@@ -143,7 +143,7 @@ class Config
         ];
     }
 
-    private function truncate($string, $length = 150, $append = "&hellip;"): string
+    private function truncate(string $string, int $length = 150, string $append = '...'): string
     {
         $string = trim($string);
 
