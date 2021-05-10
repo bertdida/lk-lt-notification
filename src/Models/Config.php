@@ -47,14 +47,18 @@ class Config
         $post = json_decode($payload['social_post'], true);
         $page = json_decode($payload['social_page']['raw'], true);
 
+        $engagementFrom = $payload['activity_from'];
+        $engagementFromLink = 'https://facebook.com/' . $payload['activity_from_id'];
+
         $data = [
             '%recipient%' => $this->user->name,
-            '%reactor%' => $payload['activity_from'],
-            '%reactor_link%' => 'https://facebook.com/' . $payload['activity_from_id'],
-            '%reaction%' => $payload['activity_type'],
             '%post%' => $this->truncate($post['message'], 150),
             '%post_link%' => $post['permalink_url'],
             '%page_name%' => $page['name'],
+
+            '%engagement_from%' => $engagementFrom,
+            '%engagement_from_link%' => $engagementFromLink,
+            '%activity_type%' => $payload['activity_type'],
         ];
 
         $emailTemplate = file_get_contents(ROOT_DIR . '\src\templates\reactions\message.html');
