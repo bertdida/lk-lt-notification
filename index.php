@@ -2,3 +2,6 @@
 define('ROOT_DIR', __DIR__);
 
 require_once ROOT_DIR . '/vendor/autoload.php';
+
+$dotenv = \Dotenv\Dotenv::createImmutable(ROOT_DIR);
+$dotenv->load();
