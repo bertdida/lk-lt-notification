@@ -6,6 +6,7 @@ use LTN\Models\User;
 use LTN\Utils\Logger;
 use PHPMailer\PHPMailer\Exception as PHPMailerException;
 use PHPMailer\PHPMailer\PHPMailer;
+use Twilio\Exceptions\TwilioException;
 use Twilio\Rest\Client;
 
 class Config
@@ -82,13 +83,17 @@ class Config
             return;
         }
 
-        $client->messages->create(
-            $this->user->phone,
-            [
-                'from' => $_ENV['TWILIO_PHONE'],
-                'body' => $textContent,
-            ]
-        );
+        try {
+            $client->messages->create(
+                $this->user->phone,
+                [
+                    'from' => $_ENV['TWILIO_PHONE'],
+                    'body' => $textContent,
+                ]
+            );
+        } catch (TwilioException $e) {
+            Logger::save($e->getMessage());
+        }
     }
 
     private function getMessageData(array $payload): array
