@@ -6,6 +6,7 @@ use LTN\Models\User;
 use LTN\Utils\Logger;
 use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\PHPMailer;
+use Twilio\Rest\Client;
 
 class Config
 {
@@ -38,11 +39,59 @@ class Config
                 case 'email':
                     $this->sendEmail($payload);
                     break;
+                case 'text':
+                    $this->sendSMS($payload);
+                    break;
             }
         }
     }
 
     private function sendEmail(array $payload): void
+    {
+        $data = $this->getMessageData($payload);
+        $mail = new PHPMailer(true);
+
+        try {
+            $mail->isSMTP();
+            $mail->Host = $_ENV['MAIL_HOST'];
+            $mail->SMTPAuth = true;
+            $mail->Username = $_ENV['MAIL_USERNAME'];
+            $mail->Password = $_ENV['MAIL_PASSWORD'];
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port = $_ENV['MAIL_PORT'];
+
+            $mail->setFrom($_ENV['MAIL_FROM_ADDRESS'], $_ENV['MAIL_FROM_NAME']);
+            $mail->addAddress($this->user->email, $this->user->name);
+
+            $mail->isHTML(true);
+            $mail->Subject = "LeadKlozer: {$data['page']['name']}'s page has new {$data['activity_type']}";
+            $mail->Body = $data['email_content'];
+            $mail->AltBody = $data['text_content'];
+            $mail->send();
+        } catch (Exception $e) {
+            Logger::save($mail->ErrorInfo);
+        }
+    }
+
+    private function sendSMS(array $payload): void
+    {
+        $client = new Client($_ENV['TWILIO_SID'], $_ENV['TWILIO_TOKEN']);
+        ['text_content' => $textContent] = $this->getMessageData($payload);
+
+        if (!isset($this->user->phone)) {
+            return;
+        }
+
+        $client->messages->create(
+            $this->user->phone,
+            [
+                'from' => $_ENV['TWILIO_PHONE'],
+                'body' => $textContent,
+            ]
+        );
+    }
+
+    private function getMessageData(array $payload): array
     {
         $raw = json_decode($payload['raw'], true);
         $post = json_decode($payload['social_post'], true);
@@ -78,28 +127,15 @@ class Config
         $emailContent = strtr($emailTemplate, $data);
         $textContent = strtr($textTemplate, $data);
 
-        $mail = new PHPMailer(true);
-
-        try {
-            $mail->isSMTP();
-            $mail->Host = $_ENV['MAIL_HOST'];
-            $mail->SMTPAuth = true;
-            $mail->Username = $_ENV['MAIL_USERNAME'];
-            $mail->Password = $_ENV['MAIL_PASSWORD'];
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = $_ENV['MAIL_PORT'];
-
-            $mail->setFrom($_ENV['MAIL_FROM_ADDRESS'], $_ENV['MAIL_FROM_NAME']);
-            $mail->addAddress($this->user->email, $this->user->name);
-
-            $mail->isHTML(true);
-            $mail->Subject = "LeadKlozer: {$page['name']}'s page has new {$activityType}";
-            $mail->Body = $emailContent;
-            $mail->AltBody = $textContent;
-            $mail->send();
-        } catch (Exception $e) {
-            Logger::save($mail->ErrorInfo);
-        }
+        return [
+            'raw' => $raw,
+            'post' => $post,
+            'page' => $page,
+            'values' => $data,
+            'email_content' => $emailContent,
+            'text_content' => $textContent,
+            'activity_type' => $activityType,
+        ];
     }
 
     private function truncate($string, $length = 150, $append = "&hellip;"): string
