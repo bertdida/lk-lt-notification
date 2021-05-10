@@ -44,6 +44,7 @@ class Config
 
     private function sendEmail(array $payload): void
     {
+        $raw = json_decode($payload['raw'], true);
         $post = json_decode($payload['social_post'], true);
         $page = json_decode($payload['social_page']['raw'], true);
 
@@ -52,8 +53,8 @@ class Config
 
         $data = [
             '%recipient%' => $this->user->name,
-            '%post%' => $this->truncate($post['message'], 150),
-            '%post_link%' => $post['permalink_url'],
+            '%post%' => $this->truncate($post['message'] ?? ''),
+            '%post_link%' => $post['permalink_url'] ?? null,
             '%page_name%' => $page['name'],
 
             '%engagement_from%' => $engagementFrom,
@@ -61,8 +62,18 @@ class Config
             '%activity_type%' => $payload['activity_type'],
         ];
 
-        $emailTemplate = file_get_contents(ROOT_DIR . '\src\templates\reactions\message.html');
-        $textTemplate = file_get_contents(ROOT_DIR . '\src\templates\reactions\message.txt');
+        $activityType = 'reaction';
+
+        if ($payload['activity_type'] === 'message') {
+            $activityType = 'message';
+
+            if (array_key_exists('messaging', $raw) && !empty($raw['messaging'])) {
+                $data['%message%'] = $this->truncate($raw['messaging'][0]['message']['text']);
+            }
+        }
+
+        $emailTemplate = file_get_contents(ROOT_DIR . "\src\\templates\\{$activityType}\message.html");
+        $textTemplate = file_get_contents(ROOT_DIR . "\src\\templates\\{$activityType}\message.txt");
 
         $emailContent = strtr($emailTemplate, $data);
         $textContent = strtr($textTemplate, $data);
@@ -82,7 +93,7 @@ class Config
             $mail->addAddress($this->user->email, $this->user->name);
 
             $mail->isHTML(true);
-            $mail->Subject = "LeadKlozer: {$page['name']}'s page has new reaction";
+            $mail->Subject = "LeadKlozer: {$page['name']}'s page has new {$activityType}";
             $mail->Body = $emailContent;
             $mail->AltBody = $textContent;
             $mail->send();
@@ -91,7 +102,7 @@ class Config
         }
     }
 
-    private function truncate($string, $length = 100, $append = "&hellip;"): string
+    private function truncate($string, $length = 150, $append = "&hellip;"): string
     {
         $string = trim($string);
 
