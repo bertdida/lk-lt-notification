@@ -44,8 +44,25 @@ class Config
 
     private function sendEmail(array $payload): void
     {
+        $post = json_decode($payload['social_post'], true);
+        $page = json_decode($payload['social_page']['raw'], true);
 
-        $raw = json_decode($payload['raw'], true);
+        $data = [
+            '%recipient%' => $this->user->name,
+            '%reactor%' => $payload['activity_from'],
+            '%reactor_link%' => 'https://facebook.com/' . $payload['activity_from_id'],
+            '%reaction%' => $payload['activity_type'],
+            '%post%' => $this->truncate($post['message'], 150),
+            '%post_link%' => $post['permalink_url'],
+            '%page_name%' => $page['name'],
+        ];
+
+        $emailTemplate = file_get_contents(ROOT_DIR . '\src\templates\reactions\message.html');
+        $textTemplate = file_get_contents(ROOT_DIR . '\src\templates\reactions\message.txt');
+
+        $emailContent = strtr($emailTemplate, $data);
+        $textContent = strtr($textTemplate, $data);
+
         $mail = new PHPMailer(true);
 
         try {
@@ -61,14 +78,25 @@ class Config
             $mail->addAddress($this->user->email, $this->user->name);
 
             $mail->isHTML(true);
-            $mail->Subject = 'Here is the subject';
-            $mail->Body = 'This is the HTML message body <b>in bold!</b>';
-            $mail->AltBody = 'This is the body in plain text for non-HTML mail clients';
-
+            $mail->Subject = "LeadKlozer: {$page['name']}'s page has new reaction";
+            $mail->Body = $emailContent;
+            $mail->AltBody = $textContent;
             $mail->send();
-            echo 'Message has been sent';
-        } catch (Exception $error) {
+        } catch (Exception $e) {
             Logger::save($mail->ErrorInfo);
         }
+    }
+
+    private function truncate($string, $length = 100, $append = "&hellip;"): string
+    {
+        $string = trim($string);
+
+        if (strlen($string) > $length) {
+            $string = wordwrap($string, $length);
+            $string = explode("\n", $string, 2);
+            $string = $string[0] . $append;
+        }
+
+        return $string;
     }
 }

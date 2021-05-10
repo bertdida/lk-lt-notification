@@ -1,0 +1,1 @@
+Hi %recipient%, %reactor% has reacted (%reaction%) to %post% from %page_name%'s Facebook page.
