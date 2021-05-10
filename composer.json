@@ -10,7 +10,9 @@
     }
   ],
   "require": {
-    "vlucas/phpdotenv": "^5.3"
+    "vlucas/phpdotenv": "^5.3",
+    "phpmailer/phpmailer": "^6.4",
+    "monolog/monolog": "^2.2"
   },
   "autoload": {
     "psr-4": {
