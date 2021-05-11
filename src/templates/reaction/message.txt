@@ -1,1 +1,1 @@
-Hi %recipient%, %engagement_from% has reacted (%activity_type%) to %post% from %page_name%'s Facebook page.
+Hi %recipient%, %engagement_from% has reacted (%activity_type%) to "%post%" from %page_name%'s Facebook page.
