@@ -43,6 +43,9 @@ class Config
                 case 'text':
                     $this->sendSMS($payload);
                     break;
+                case 'push':
+                    $this->sendPush($payload);
+                    break;
             }
         }
     }
@@ -94,6 +97,11 @@ class Config
         } catch (TwilioException $e) {
             Logger::save($e->getMessage());
         }
+    }
+
+    private function sendPush(array $payload): void
+    {
+        // TODO
     }
 
     private function getMessageData(array $payload): array
