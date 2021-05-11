@@ -134,6 +134,18 @@ class Config
             }
         }
 
+        if ($payload['activity_type'] === 'comment') {
+            $activityType = 'comment';
+
+            if (array_key_exists('changes', $raw) && !empty($raw['changes'])) {
+                $data['%comment%'] = null;
+
+                if (array_key_exists('message', $raw['changes'][0]['value'])) {
+                    $data['%comment%'] = $this->truncate($raw['changes'][0]['value']['message']);
+                }
+            }
+        }
+
         $emailTemplate = file_get_contents(ROOT_DIR . "\src\\templates\\{$activityType}\message.html");
         $textTemplate = file_get_contents(ROOT_DIR . "\src\\templates\\{$activityType}\message.txt");
 
