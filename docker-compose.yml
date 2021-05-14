@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  lknotifications:
+    image: lknotifications
+    env_file: .env
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    entrypoint: ./entrypoint.sh
+    ports:
+      - 3000:3000
+    environment:
+      docker: "true"
