@@ -15,12 +15,10 @@ class User
         $this->dbConn = $dbConn;
         $user = UserController::getById($this->dbConn, $id);
 
-        if (!is_array($user)) {
-            return null;
-        }
-
-        foreach ($user as $key => $value) {
-            $this->$key = $value;
+        if (is_array($user)) {
+            foreach ($user as $key => $value) {
+                $this->$key = $value;
+            }
         }
     }
 
