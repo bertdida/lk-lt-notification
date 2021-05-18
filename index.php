@@ -6,9 +6,20 @@ use LTN\Models\User;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
+use Tuupola\Middleware\CorsMiddleware;
 
-$app = AppFactory::create();
 $dbConn = new \mysqli($_ENV['DB_HOST'], $_ENV['DB_USERNAME'], $_ENV['DB_PASSWORD'], $_ENV['DB_DATABASE']);
+$app = AppFactory::create();
+
+$app->add(new CorsMiddleware([
+    'origin' => ['*'],
+    'methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    'headers.allow' => ['Accept', 'Content-Type'],
+    'headers.expose' => [],
+    'credentials' => false,
+    'cache' => 0,
+    'logger' => $container['logger'],
+]));
 
 $customErrorHandler = function (Request $request, Throwable $exception) use ($app) {
     $response = $app->getResponseFactory()->createResponse();
