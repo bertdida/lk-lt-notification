@@ -8,9 +8,14 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
 use Tuupola\Middleware\CorsMiddleware;
 
-$dbConn = new \mysqli($_ENV['DB_HOST'], $_ENV['DB_USERNAME'], $_ENV['DB_PASSWORD'], $_ENV['DB_DATABASE']);
-$app = AppFactory::create();
+$dbConn = new \mysqli(
+    $_ENV['LK_DB_HOST'],
+    $_ENV['LK_DB_USERNAME'],
+    $_ENV['LK_DB_PASSWORD'],
+    $_ENV['LK_DB_DATABASE']
+);
 
+$app = AppFactory::create();
 $app->add(new CorsMiddleware([
     'origin' => ['*'],
     'methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
