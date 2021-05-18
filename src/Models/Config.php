@@ -4,6 +4,8 @@ namespace LTN\Models;
 
 use LTN\Models\User;
 use LTN\Utils\Logger;
+use Minishlink\WebPush\Subscription;
+use Minishlink\WebPush\WebPush;
 use PHPMailer\PHPMailer\Exception as PHPMailerException;
 use PHPMailer\PHPMailer\PHPMailer;
 use Twilio\Exceptions\TwilioException;
@@ -101,7 +103,37 @@ class Config
 
     private function sendPush(array $payload): void
     {
-        // TODO
+        $subscriber = []; // get this from database
+
+        if (is_null($subscriber)) {
+            return;
+        }
+
+        $subscription = Subscription::create([
+            'endpoint' => $subscriber['endpoint'],
+            'publicKey' => $subscriber['p256dh'],
+            'authToken' => $subscriber['auth'],
+        ]);
+
+        $data = $this->getMessageData($payload);
+        $payload = [
+            'badge' => null,
+            'icon' => null,
+            'title' => "LeadKlozer: {$data['page']['name']}'s page has new {$data['activity_type']}",
+            'message' => $data['text_content'],
+            'url' => null,
+        ];
+
+        $auth = [
+            'VAPID' => [
+                'subject' => 'mailto:support@leadklozer.com',
+                'publicKey' => $_ENV['VAPID_PUBLIC'],
+                'privateKey' => $_ENV['VAPID_PRIVATE'],
+            ],
+        ];
+
+        $webPush = new WebPush($auth);
+        $webPush->sendOneNotification($subscription, json_encode($payload));
     }
 
     private function getMessageData(array $payload): array
