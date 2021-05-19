@@ -182,8 +182,8 @@ class NotificationConfig extends Model
             }
         }
 
-        $emailTemplate = file_get_contents(ROOT_DIR . "\src\\templates\\{$activityType}\message.html");
-        $textTemplate = file_get_contents(ROOT_DIR . "\src\\templates\\{$activityType}\message.txt");
+        $emailTemplate = file_get_contents(ROOT_DIR . "/src/templates/{$activityType}/message.html");
+        $textTemplate = file_get_contents(ROOT_DIR . "/src/templates/{$activityType}/message.txt");
 
         $emailContent = strtr($emailTemplate, $data);
         $textContent = strtr($textTemplate, $data);
