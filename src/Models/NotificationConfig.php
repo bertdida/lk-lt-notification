@@ -2,6 +2,8 @@
 
 namespace LTN\Models;
 
+use Illuminate\Database\Eloquent\Model;
+use LTN\Models\LiveTrackerFilter;
 use LTN\Models\User;
 use LTN\Utils\Logger;
 use Minishlink\WebPush\Subscription;
@@ -11,17 +13,18 @@ use PHPMailer\PHPMailer\PHPMailer;
 use Twilio\Exceptions\TwilioException;
 use Twilio\Rest\Client;
 
-class Config
+class NotificationConfig extends Model
 {
-    private $user = null;
+    protected $table = 'live_tracker_filter_notification_configs';
 
-    public function __construct(array $row, User $user)
+    public function liveTrackerFilter()
     {
-        $this->user = $user;
+        return $this->hasOne(LiveTrackerFilter::class, 'id', 'live_tracker_filter_id');
+    }
 
-        foreach ($row as $key => $value) {
-            $this->$key = $value;
-        }
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function test(array $payload): bool
@@ -38,6 +41,7 @@ class Config
         }
 
         foreach ($methods as ['value' => $value]) {
+
             switch ($value) {
                 case 'email':
                     $this->sendEmail($payload);
@@ -74,7 +78,7 @@ class Config
             $mail->Body = $data['email_content'];
             $mail->AltBody = $data['text_content'];
             $mail->send();
-        } catch (PHPMailerException $e) {
+        } catch (PHPMailerException $error) {
             Logger::save($mail->ErrorInfo);
         }
     }
@@ -96,14 +100,14 @@ class Config
                     'body' => $textContent,
                 ]
             );
-        } catch (TwilioException $e) {
-            Logger::save($e->getMessage());
+        } catch (TwilioException $error) {
+            Logger::save($error->getMessage());
         }
     }
 
     private function sendPush(array $payload): void
     {
-        $subscriber = []; // get this from database
+        $subscriber = null; // get this from database
 
         if (is_null($subscriber)) {
             return;

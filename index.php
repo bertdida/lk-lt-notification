@@ -1,29 +1,37 @@
 <?php
 define('ROOT_DIR', __DIR__);
 require_once ROOT_DIR . '/vendor/autoload.php';
+require_once ROOT_DIR . '/src/utils.php';
 
-use LTN\Models\User;
-use LTN\Utils\Logger;
-use Psr\Http\Message\ResponseInterface as Response;
+use DI\Container;
+use Dotenv\Dotenv;
+use LTN\Controllers\NotificationController;
+use LTN\Controllers\PingController;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
 use Tuupola\Middleware\CorsMiddleware;
 
-$options = [
-    \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
-    \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
-    \PDO::ATTR_EMULATE_PREPARES => false,
-];
+$dotenv = Dotenv::createImmutable(ROOT_DIR);
+$dotenv->load();
 
-try {
-    $dsn = "mysql:host={$_ENV['LK_DB_HOST']};dbname={$_ENV['LK_DB_DATABASE']};charset=utf8mb4";
-    $dbConn = new \PDO($dsn, $_ENV['LK_DB_USERNAME'], $_ENV['LK_DB_PASSWORD'], $options);
-} catch (\PDOException $e) {
-    Logger::save($e->getMessage());
-    exit($e->getMessage());
-}
+$container = new Container();
 
+$container->set('lkdb', function () {
+    return getDbConnection([
+        'host' => $_ENV['LK_DB_HOST'],
+        'database' => $_ENV['LK_DB_DATABASE'],
+        'username' => $_ENV['LK_DB_USERNAME'],
+        'password' => $_ENV['LK_DB_PASSWORD'],
+    ]);
+});
+
+$container->set(NotificationController::class, function ($container) {
+    return new NotificationController($container->get('lkdb'));
+});
+
+AppFactory::setContainer($container);
 $app = AppFactory::create();
+
 $app->add(new CorsMiddleware([
     'origin' => ['*'],
     'methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
@@ -31,40 +39,17 @@ $app->add(new CorsMiddleware([
     'headers.expose' => [],
     'credentials' => false,
     'cache' => 0,
-    'logger' => $container['logger'],
 ]));
 
-$customErrorHandler = function (Request $request, Throwable $exception) use ($app) {
+$customErrorHandler = function (Request $request, Throwable $error) use ($app) {
     $response = $app->getResponseFactory()->createResponse();
-    return $response
-        ->withJson(['error' => $exception->getMessage()])
-        ->withStatus($exception->getCode() === 0 ? 500 : $exception->getCode());
+    return $response->withJson(['error' => $error->getMessage()]);
 };
 
 $errorMiddleware = $app->addErrorMiddleware(true, true, true);
 $errorMiddleware->setDefaultErrorHandler($customErrorHandler);
 
-$app->get('/ping', function (Request $request, Response $response) {
-    $response->getBody()->write('pong');
-    return $response;
-});
-
-$app->post('/service', function (Request $request, Response $response) use ($dbConn) {
-    $payload = $request->getParsedBody();
-    $user = new User($dbConn, $payload['user_id']);
-
-    if (!property_exists($user, 'id')) {
-        return $response->withJson(['error' => 'User not found', 'success' => false], 404);
-    }
-
-    $configs = $user->getConfigs();
-    foreach ($configs as $config) {
-        if ($config->test($payload)) {
-            // $config->send($payload);
-        }
-    }
-
-    return $response->withJson(['success' => true]);
-});
+$app->get('/ping', PingController::class . ':get');
+$app->post('/notification', NotificationController::class . ':post');
 
 $app->run();
