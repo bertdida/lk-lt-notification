@@ -3,17 +3,25 @@ define('ROOT_DIR', __DIR__);
 require_once ROOT_DIR . '/vendor/autoload.php';
 
 use LTN\Models\User;
+use LTN\Utils\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
 use Tuupola\Middleware\CorsMiddleware;
 
-$dbConn = new \mysqli(
-    $_ENV['LK_DB_HOST'],
-    $_ENV['LK_DB_USERNAME'],
-    $_ENV['LK_DB_PASSWORD'],
-    $_ENV['LK_DB_DATABASE']
-);
+$options = [
+    \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+    \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+    \PDO::ATTR_EMULATE_PREPARES => false,
+];
+
+try {
+    $dsn = "mysql:host={$_ENV['LK_DB_HOST']};dbname={$_ENV['LK_DB_DATABASE']};charset=utf8mb4";
+    $dbConn = new \PDO($dsn, $_ENV['LK_DB_USERNAME'], $_ENV['LK_DB_PASSWORD'], $options);
+} catch (\PDOException $e) {
+    Logger::save($e->getMessage());
+    exit($e->getMessage());
+}
 
 $app = AppFactory::create();
 $app->add(new CorsMiddleware([

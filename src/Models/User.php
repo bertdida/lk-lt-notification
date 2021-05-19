@@ -4,13 +4,13 @@ namespace LTN\Models;
 
 use LTN\Controllers\ConfigController;
 use LTN\Controllers\UserController;
-use mysqli;
+use PDO;
 
 class User
 {
     public $dbConn;
 
-    public function __construct(mysqli $dbConn, int $id)
+    public function __construct(PDO $dbConn, int $id)
     {
         $this->dbConn = $dbConn;
         $user = UserController::getById($this->dbConn, $id);

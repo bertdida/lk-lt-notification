@@ -2,29 +2,21 @@
 
 namespace LTN\Controllers;
 
-use mysqli;
-
 class UserController
 {
     const TABLE_NAME = 'users';
 
-    public static function getById(mysqli $dbConn, int $id): ?array
+    public static function getById(\PDO $dbConn, int $id): ?array
     {
-        $sql = 'SELECT * FROM `' . self::TABLE_NAME . '` WHERE `id` = ?';
+        $sql = 'SELECT * FROM `' . self::TABLE_NAME . '` WHERE `id` = :id LIMIT 1';
         $query = $dbConn->prepare($sql);
-        $query->bind_param('s', $id);
+        $query->bindParam(':id', $id, \PDO::PARAM_INT);
         $query->execute();
 
-        $result = $query->get_result();
-        $hasResult = $result->num_rows === 1;
-
-        $query->free_result();
-        $query->close();
-
-        if (!$hasResult) {
+        if ($query->rowCount() === 0) {
             return null;
         }
 
-        return $result->fetch_assoc();
+        return $query->fetch();
     }
 }

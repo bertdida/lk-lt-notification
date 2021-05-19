@@ -7,32 +7,19 @@ use LTN\Models\User;
 
 class ConfigController
 {
-    public static function getAll(User $user)
+    public static function getAll(User $user): array
     {
         $sql = <<<SQL
         SELECT * FROM `live_tracker_filter_notification_configs` AS c
         LEFT JOIN live_tracker_filters AS l
-        ON c.live_tracker_filter_id = l.id WHERE c.user_id = ?;
+        ON c.live_tracker_filter_id = l.id WHERE c.user_id = :userId;
 SQL;
         $query = $user->dbConn->prepare($sql);
-        $query->bind_param('s', $user->id);
+        $query->bindParam(':userId', $user->id, \PDO::PARAM_INT);
         $query->execute();
 
-        $result = $query->get_result();
-        $hasResult = $result->num_rows >= 1;
-
-        if ($hasResult === false) {
-            return [];
-        }
-
-        $configs = [];
-        while ($row = $result->fetch_assoc()) {
-            array_push($configs, new Config($row, $user));
-        }
-
-        $query->free_result();
-        $query->close();
-
-        return $configs;
+        return array_map(function ($result) use ($user) {
+            return new Config($result, $user);
+        }, $query->fetchAll());
     }
 }
