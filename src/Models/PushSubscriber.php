@@ -6,7 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class PushSubscriber extends Model
 {
+    protected $connection = 'local';
+
     protected $table = 'push_subscribers';
 
-    protected $connection = 'local';
+    protected $fillable = [
+        'lk_user_id',
+        'endpoint',
+        'auth',
+        'p256dh',
+    ];
 }

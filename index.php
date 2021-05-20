@@ -1,12 +1,13 @@
 <?php
 define('ROOT_DIR', __DIR__);
 require_once ROOT_DIR . '/vendor/autoload.php';
-require_once ROOT_DIR . '/src/utils.php';
 
 use DI\Container;
 use Dotenv\Dotenv;
+use Illuminate\Database\Capsule\Manager as Capsule;
 use LTN\Controllers\NotificationController;
 use LTN\Controllers\PingController;
+use LTN\Controllers\PushController;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
 use Tuupola\Middleware\CorsMiddleware;
@@ -14,28 +15,37 @@ use Tuupola\Middleware\CorsMiddleware;
 $dotenv = Dotenv::createImmutable(ROOT_DIR);
 $dotenv->load();
 
-$container = new Container();
-
-$container->set('lkdb', function () {
-    return getDbConnection([
+$dbConfig = [
+    'default' => [
         'host' => $_ENV['LK_DB_HOST'],
         'database' => $_ENV['LK_DB_NAME'],
         'username' => $_ENV['LK_DB_USERNAME'],
         'password' => $_ENV['LK_DB_PASSWORD'],
-    ], 'lk');
-});
-
-$container->set('localdb', function () {
-    return getDbConnection([
+    ],
+    'local' => [
         'host' => 'db',
         'database' => $_ENV['DB_NAME'],
         'username' => $_ENV['DB_USERNAME'],
         'password' => $_ENV['DB_PASSWORD'],
-    ], 'local');
-});
+    ],
+];
 
-$container->set(NotificationController::class, function ($container) {
-    return new NotificationController($container->get('lkdb'));
+$capsule = new Capsule;
+foreach ($dbConfig as $name => $config) {
+    $capsule->addConnection(array_merge([
+        'driver' => 'mysql',
+        'charset' => 'utf8',
+        'collation' => 'utf8_unicode_ci',
+        'prefix' => '',
+    ], $config), $name);
+}
+
+$capsule->setAsGlobal();
+$capsule->bootEloquent();
+
+$container = new Container;
+$container->set('db', function ($capsule) {
+    return $capsule;
 });
 
 AppFactory::setContainer($container);
@@ -60,5 +70,6 @@ $errorMiddleware->setDefaultErrorHandler($customErrorHandler);
 
 $app->get('/ping', PingController::class . ':get');
 $app->post('/notification', NotificationController::class . ':post');
+$app->post('/push', PushController::class . ':post');
 
 $app->run();
