@@ -23,7 +23,8 @@ final class CreatePushSubscribersTable extends AbstractMigration
             ->addColumn('auth', 'string', ['limit' => 255])
             ->addColumn('p256dh', 'string', ['limit' => 255])
             ->addColumn('endpoint', 'string', ['limit' => 255])
-            ->addColumn('created', 'datetime')
+            ->addColumn('created_at', 'datetime', ['default' => 'CURRENT_TIMESTAMP'])
+            ->addColumn('updated_at', 'datetime', ['default' => 'CURRENT_TIMESTAMP'])
             ->create();
     }
 }
