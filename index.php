@@ -10,6 +10,7 @@ use LTN\Controllers\PingController;
 use LTN\Controllers\PushController;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
+use Slim\Routing\RouteCollectorProxy;
 use Tuupola\Middleware\CorsMiddleware;
 
 $dotenv = Dotenv::createImmutable(ROOT_DIR);
@@ -69,7 +70,9 @@ $errorMiddleware = $app->addErrorMiddleware(true, true, true);
 $errorMiddleware->setDefaultErrorHandler($customErrorHandler);
 
 $app->get('/ping', PingController::class . ':get');
-$app->post('/notification', NotificationController::class . ':post');
-$app->post('/push', PushController::class . ':post');
+$app->group('/api', function (RouteCollectorProxy $group) {
+    $group->post('/notification', NotificationController::class . ':post');
+    $group->post('/push', PushController::class . ':post');
+});
 
 $app->run();
