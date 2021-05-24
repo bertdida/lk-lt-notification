@@ -29,6 +29,68 @@ class NotificationConfig extends Model
 
     public function test(array $payload): bool
     {
+        $contact = Contact::where('user_id', $payload['user_id'])
+            ->where('provider_user_id', $payload['activity_from_id'])
+            ->first();
+
+        // checks contact status
+        if (!$contact || !in_array($contact->status, $this->getContactStatuses())) {
+            return false;
+        }
+
+        // checks engagement type
+        if (!in_array($payload['activity_type'], $this->getEngagementTypes())) {
+            return false;
+        }
+
+        // checks comment keywords
+        if ($payload['activity_type'] === 'comment' && !empty($this->getCommentKeywords())) {
+            $isFound = false;
+            ['values' => $values] = $this->getMessageData($payload);
+            ['%full_comment%' => $comment] = $values;
+
+            foreach ($this->getCommentKeywords() as $keyword) {
+                if ($this->stringContains($comment, $keyword)) {
+                    $isFound = true;
+                }
+            }
+
+            if (!$isFound) {
+                return false;
+            }
+        }
+
+        // checks direct communication
+        if ($this->liveTrackerFilter->is_direct_communication) {
+            if (!$contact->last_message && !$contact->last_comment) {
+                $contactInfo = $contact->info()
+                    ->whereIn('label', ['email', 'phone'])
+                    ->whereNotNull('value')
+                    ->first();
+
+                if (!$contactInfo) {
+                    return false;
+                }
+            }
+        }
+
+        // checks for contact type
+        $contactTypes = $this->liveTrackerFilter->contactTypes;
+        if (!is_null($contact->type) && !in_array($contact->type->id, $contactTypes->pluck('id')->toArray())) {
+            return false;
+        }
+
+        // if contact's type is null, the live tracker filter's contact
+        // types must have the default contact type for all contacts - which
+        // the id is defined as $defaultContactTypeId
+        $defaultContactTypeId = 1;
+        if (!$contactTypes->where('default_stage_type_id', $defaultContactTypeId)->first()) {
+            return false;
+        }
+
+        // TODO: check for posts or ads
+        // TODO: check for posts ads messages
+
         return true;
     }
 
@@ -177,7 +239,9 @@ class NotificationConfig extends Model
                 $data['%comment%'] = null;
 
                 if (array_key_exists('message', $raw['changes'][0]['value'])) {
-                    $data['%comment%'] = $this->truncate($raw['changes'][0]['value']['message']);
+                    $comment = $raw['changes'][0]['value']['message'];
+                    $data['%full_comment%'] = $comment;
+                    $data['%comment%'] = $this->truncate($comment);
                 }
             }
         }
@@ -210,5 +274,77 @@ class NotificationConfig extends Model
         }
 
         return $string;
+    }
+
+    private function getContactStatuses(): array
+    {
+        $contactStatuses = json_decode($this->liveTrackerFilter->contact_status, true);
+        return array_reduce($contactStatuses['items'], function ($carry, $status) {
+            $value = strtolower($status['text']);
+
+            if (in_array($value, $carry) || !$status['isSelected']) {
+                return $carry;
+            }
+
+            array_push($carry, $value);
+            return $carry;
+        }, []);
+    }
+
+    private function getEngagementTypes(): array
+    {
+        $engagements = json_decode($this->liveTrackerFilter->engagements, true);
+        return array_reduce($engagements['items'], function ($carry, $engagement) {
+            ['isSelected' => $isSelected, 'text' => $text] = $engagement;
+
+            if (!$isSelected) {
+                return $carry;
+            }
+
+            if ($this->stringContains($text, 'reactions')) {
+                $carry = array_merge($carry, [
+                    'like',
+                    'love',
+                    'haha',
+                    'wow',
+                    'sad',
+                    'angry',
+                    'support',
+                    'care',
+                ]);
+            }
+
+            if ($this->stringContains($text, 'inbox')) {
+                array_push($carry, 'message');
+            }
+
+            if ($this->stringContains($text, 'lead')) {
+                array_push($carry, 'lead');
+            }
+
+            if ($this->stringContains($text, 'comments')) {
+                array_push($carry, 'comment');
+            }
+
+            return $carry;
+        }, []);
+    }
+
+    private function stringContains($haystack, $needle)
+    {
+        return (strpos(strtolower($haystack), strtolower($needle)) !== false);
+    }
+
+    private function getCommentKeywords(): array
+    {
+        $keywords = json_decode($this->liveTrackerFilter->keywords, true);
+        return array_reduce($keywords['items'], function ($carry, $keyword) {
+            if (!$keyword['isSelected']) {
+                return $carry;
+            }
+
+            array_push($carry, $keyword['text']);
+            return $carry;
+        }, []);
     }
 }
