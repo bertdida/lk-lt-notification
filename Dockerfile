@@ -8,3 +8,5 @@ RUN chmod +x /wait
 
 WORKDIR /home/appuser
 COPY . .
+
+RUN chmod +x entrypoint.sh
