@@ -53,7 +53,10 @@ AppFactory::setContainer($container);
 $app = AppFactory::create();
 
 $app->add(new CorsMiddleware([
-    'origin' => ['*'],
+    'origin' => [
+        'http://localhost:3000',
+        'https://live.leadklozer.com',
+    ],
     'methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     'headers.allow' => ['Accept', 'Content-Type'],
     'headers.expose' => [],
