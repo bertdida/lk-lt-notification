@@ -24,7 +24,7 @@ $dbConfig = [
         'password' => $_ENV['LK_DB_PASSWORD'],
     ],
     'local' => [
-        'host' => 'db',
+        'host' => getenv('docker') !== false ? 'db' : 'localhost',
         'database' => $_ENV['DB_NAME'],
         'username' => $_ENV['DB_USERNAME'],
         'password' => $_ENV['DB_PASSWORD'],
