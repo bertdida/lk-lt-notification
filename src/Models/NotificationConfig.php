@@ -53,6 +53,7 @@ class NotificationConfig extends Model
             foreach ($this->getCommentKeywords() as $keyword) {
                 if ($this->stringContains($comment, $keyword)) {
                     $isFound = true;
+                    break;
                 }
             }
 
