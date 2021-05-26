@@ -38,7 +38,7 @@ class NotificationController
 
         return $response->withJson([
             'data' => [
-                'user' => $user->notificationConfigs,
+                'user' => $user,
             ],
         ]);
     }
