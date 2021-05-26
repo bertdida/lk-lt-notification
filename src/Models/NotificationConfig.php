@@ -174,7 +174,27 @@ class NotificationConfig extends Model
             ->get()
             ->toArray();
 
+        if (empty($subscribers)) {
+            return;
+        }
+
+        $webPush = new WebPush([
+            'VAPID' => [
+                'subject' => 'mailto:support@leadklozer.com',
+                'publicKey' => $_ENV['VAPID_PUBLIC'],
+                'privateKey' => $_ENV['VAPID_PRIVATE'],
+            ],
+        ]);
+
+        $data = $this->getMessageData($payload);
         $hostname = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . "://$_SERVER[HTTP_HOST]";
+        $notificationPayload = [
+            'badge' => $hostname . '/public/assets/badge.png',
+            'icon' => $hostname . '/public/assets/icon.png',
+            'title' => "LeadKlozer: {$data['page']['name']}'s page has new {$data['activity_type']}",
+            'message' => $data['text_content'],
+            'url' => null,
+        ];
 
         foreach ($subscribers as $subscriber) {
             $subscription = Subscription::create([
@@ -183,25 +203,7 @@ class NotificationConfig extends Model
                 'authToken' => $subscriber['auth'],
             ]);
 
-            $data = $this->getMessageData($payload);
-            $payload = [
-                'badge' => $hostname . '/public/assets/badge.png',
-                'icon' => $hostname . '/public/assets/icon.png',
-                'title' => "LeadKlozer: {$data['page']['name']}'s page has new {$data['activity_type']}",
-                'message' => $data['text_content'],
-                'url' => null,
-            ];
-
-            $auth = [
-                'VAPID' => [
-                    'subject' => 'mailto:support@leadklozer.com',
-                    'publicKey' => $_ENV['VAPID_PUBLIC'],
-                    'privateKey' => $_ENV['VAPID_PRIVATE'],
-                ],
-            ];
-
-            $webPush = new WebPush($auth);
-            $webPush->sendOneNotification($subscription, json_encode($payload));
+            $webPush->sendOneNotification($subscription, json_encode($notificationPayload));
         }
     }
 
