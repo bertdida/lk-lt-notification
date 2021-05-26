@@ -4,6 +4,7 @@ namespace LTN\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use LTN\Models\LiveTrackerFilter;
+use LTN\Models\PushSubscriber;
 use LTN\Models\User;
 use LTN\Utils\Logger;
 use Minishlink\WebPush\Subscription;
@@ -169,37 +170,39 @@ class NotificationConfig extends Model
 
     private function sendPush(array $payload): void
     {
-        $subscriber = null; // get this from database
+        $subscribers = PushSubscriber::where('lk_user_id', $payload['user_id'])
+            ->get()
+            ->toArray();
 
-        if (is_null($subscriber)) {
-            return;
+        $hostname = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . "://$_SERVER[HTTP_HOST]";
+
+        foreach ($subscribers as $subscriber) {
+            $subscription = Subscription::create([
+                'endpoint' => $subscriber['endpoint'],
+                'publicKey' => $subscriber['p256dh'],
+                'authToken' => $subscriber['auth'],
+            ]);
+
+            $data = $this->getMessageData($payload);
+            $payload = [
+                'badge' => $hostname . '/public/assets/badge.png',
+                'icon' => $hostname . '/public/assets/icon.png',
+                'title' => "LeadKlozer: {$data['page']['name']}'s page has new {$data['activity_type']}",
+                'message' => $data['text_content'],
+                'url' => null,
+            ];
+
+            $auth = [
+                'VAPID' => [
+                    'subject' => 'mailto:support@leadklozer.com',
+                    'publicKey' => $_ENV['VAPID_PUBLIC'],
+                    'privateKey' => $_ENV['VAPID_PRIVATE'],
+                ],
+            ];
+
+            $webPush = new WebPush($auth);
+            $webPush->sendOneNotification($subscription, json_encode($payload));
         }
-
-        $subscription = Subscription::create([
-            'endpoint' => $subscriber['endpoint'],
-            'publicKey' => $subscriber['p256dh'],
-            'authToken' => $subscriber['auth'],
-        ]);
-
-        $data = $this->getMessageData($payload);
-        $payload = [
-            'badge' => null,
-            'icon' => null,
-            'title' => "LeadKlozer: {$data['page']['name']}'s page has new {$data['activity_type']}",
-            'message' => $data['text_content'],
-            'url' => null,
-        ];
-
-        $auth = [
-            'VAPID' => [
-                'subject' => 'mailto:support@leadklozer.com',
-                'publicKey' => $_ENV['VAPID_PUBLIC'],
-                'privateKey' => $_ENV['VAPID_PRIVATE'],
-            ],
-        ];
-
-        $webPush = new WebPush($auth);
-        $webPush->sendOneNotification($subscription, json_encode($payload));
     }
 
     private function getMessageData(array $payload): array
