@@ -171,7 +171,7 @@ class NotificationConfig extends Model
 
     private function sendPush(array $payload): void
     {
-        $subscribers = PushSubscriber::where('lk_user_id', $payload['user_id'])
+        $subscribers = PushSubscriber::where('user_id', $payload['user_id'])
             ->get()
             ->toArray();
 

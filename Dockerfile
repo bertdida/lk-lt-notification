@@ -7,9 +7,6 @@ RUN ln -s /usr/include/x86_64-linux-gnu/gmp.h /usr/local/include/
 RUN docker-php-ext-configure gmp
 RUN docker-php-ext-install pdo pdo_mysql zip gmp
 
-ADD https://github.com/ufoscout/docker-compose-wait/releases/download/2.7.3/wait /wait
-RUN chmod +x /wait
-
 WORKDIR /home/appuser
 COPY . .
 
