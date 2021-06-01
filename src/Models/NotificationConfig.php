@@ -104,25 +104,28 @@ class NotificationConfig extends Model
             return;
         }
 
-        foreach ($methods as ['value' => $value]) {
+        $data = $this->getMessageData($payload);
+        $message['subject'] = "LeadKlozer: {$data['page']['name']}'s page has new {$data['activity_type']}";
+        $message['email_content'] = $data['email_content'];
+        $message['text_content'] = $data['text_content'];
 
+        foreach ($methods as ['value' => $value]) {
             switch ($value) {
                 case 'email':
-                    $this->sendEmail($payload);
+                    $this->sendEmail($message);
                     break;
                 case 'text':
-                    $this->sendSMS($payload);
+                    $this->sendSMS($message);
                     break;
                 case 'push':
-                    $this->sendPush($payload);
+                    $this->sendPush($message);
                     break;
             }
         }
     }
 
-    private function sendEmail(array $payload): void
+    private function sendEmail(array $message): void
     {
-        $data = $this->getMessageData($payload);
         $mail = new PHPMailer(true);
 
         try {
@@ -138,19 +141,18 @@ class NotificationConfig extends Model
             $mail->addAddress($this->user->email, $this->user->name);
 
             $mail->isHTML(true);
-            $mail->Subject = "LeadKlozer: {$data['page']['name']}'s page has new {$data['activity_type']}";
-            $mail->Body = $data['email_content'];
-            $mail->AltBody = $data['text_content'];
+            $mail->Subject = $message['subject'];
+            $mail->Body = $message['email_content'];
+            $mail->AltBody = $message['text_content'];
             $mail->send();
         } catch (PHPMailerException $error) {
             Logger::save($mail->ErrorInfo);
         }
     }
 
-    private function sendSMS(array $payload): void
+    private function sendSMS(array $message): void
     {
         $client = new Client($_ENV['TWILIO_SID'], $_ENV['TWILIO_TOKEN']);
-        ['text_content' => $textContent] = $this->getMessageData($payload);
 
         if (!isset($this->user->phone)) {
             return;
@@ -161,7 +163,7 @@ class NotificationConfig extends Model
                 $this->user->phone,
                 [
                     'from' => $_ENV['TWILIO_PHONE'],
-                    'body' => $textContent,
+                    'body' => $message['text_content'],
                 ]
             );
         } catch (TwilioException $error) {
@@ -169,9 +171,9 @@ class NotificationConfig extends Model
         }
     }
 
-    private function sendPush(array $payload): void
+    private function sendPush(array $message): void
     {
-        $subscribers = PushSubscriber::where('user_id', $payload['user_id'])
+        $subscribers = PushSubscriber::where('user_id', $this->user->id)
             ->get()
             ->toArray();
 
@@ -187,13 +189,12 @@ class NotificationConfig extends Model
             ],
         ]);
 
-        $data = $this->getMessageData($payload);
         $hostname = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . "://$_SERVER[HTTP_HOST]";
         $notificationPayload = [
             'badge' => $hostname . '/public/assets/badge.png',
             'icon' => $hostname . '/public/assets/icon.png',
-            'title' => "LeadKlozer: {$data['page']['name']}'s page has new {$data['activity_type']}",
-            'message' => $data['text_content'],
+            'title' => $message['subject'],
+            'message' => $message['text_content'],
             'url' => null,
         ];
 
