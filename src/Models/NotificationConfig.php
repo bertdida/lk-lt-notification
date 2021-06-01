@@ -30,15 +30,6 @@ class NotificationConfig extends Model
 
     public function test(array $payload): bool
     {
-        $contact = Contact::where('user_id', $payload['user_id'])
-            ->where('provider_user_id', $payload['activity_from_id'])
-            ->first();
-
-        // checks contact status
-        if (!$contact || !in_array($contact->status, $this->getContactStatuses())) {
-            return false;
-        }
-
         // checks engagement type
         if (!in_array($payload['activity_type'], $this->getEngagementTypes())) {
             return false;
@@ -60,6 +51,15 @@ class NotificationConfig extends Model
             if (!$isFound) {
                 return false;
             }
+        }
+
+        $contact = Contact::where('user_id', $payload['user_id'])
+            ->where('provider_user_id', $payload['activity_from_id'])
+            ->first();
+
+        // checks contact status
+        if (!$contact || !in_array($contact->status, $this->getContactStatuses())) {
+            return false;
         }
 
         // checks direct communication
