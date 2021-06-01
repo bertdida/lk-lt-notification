@@ -19,7 +19,9 @@
     "tuupola/cors-middleware": "^1.2",
     "illuminate/database": "^8.42",
     "vlucas/phpdotenv": "^5.3",
-    "php-di/slim-bridge": "^3.1"
+    "php-di/slim-bridge": "^3.1",
+    "ulrichsg/getopt-php": "^3.4",
+    "nesbot/carbon": "^2.48"
   },
   "autoload": {
     "psr-4": {

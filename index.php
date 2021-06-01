@@ -63,4 +63,9 @@ $app->group('/api', function (RouteCollectorProxy $group) {
     $group->post('/notification', NotificationController::class . ':post');
 });
 
-$app->run();
+if (php_sapi_name() !== 'cli') {
+    $app->run();
+}
+
+// Registers cli
+require_once ROOT_DIR . '/src/cli.php';
