@@ -18,6 +18,8 @@ class NotificationConfig extends Model
 {
     protected $table = 'live_tracker_filter_notification_configs';
 
+    private static $cachedContacts = [];
+
     public function liveTrackerFilter()
     {
         return $this->hasOne(LiveTrackerFilter::class, 'id', 'live_tracker_filter_id');
@@ -53,9 +55,7 @@ class NotificationConfig extends Model
             }
         }
 
-        $contact = Contact::where('user_id', $payload['user_id'])
-            ->where('provider_user_id', $payload['activity_from_id'])
-            ->first();
+        $contact = $this->getContact($payload);
 
         // checks contact status
         if (!$contact || !in_array($contact->status, $this->getContactStatuses())) {
@@ -280,6 +280,21 @@ class NotificationConfig extends Model
         }
 
         return $string;
+    }
+
+    private function getContact(array $payload): ?Contact
+    {
+        $providerId = $payload['activity_from_id'];
+
+        if (!array_key_exists($providerId, self::$cachedContacts)) {
+            $contact = Contact::where('user_id', $payload['user_id'])
+                ->where('provider_user_id', $providerId)
+                ->first();
+
+            self::$cachedContacts[$providerId] = $contact;
+        }
+
+        return self::$cachedContacts[$providerId];
     }
 
     private function getContactStatuses(): array
