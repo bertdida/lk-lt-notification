@@ -98,16 +98,17 @@ class NotificationConfig extends Model
 
     public function send(array $payload): void
     {
-        $methods = json_decode($this->methods, true);
-
-        if (empty($methods)) {
-            return;
-        }
-
         $data = $this->getMessageData($payload);
         $message['subject'] = "LeadKlozer: {$data['page']['name']}'s page has new {$data['activity_type']}";
         $message['email_content'] = $data['email_content'];
         $message['text_content'] = $data['text_content'];
+
+        $this->sendMessage($message);
+    }
+
+    public function sendMessage(array $message): void
+    {
+        $methods = json_decode($this->methods, true);
 
         foreach ($methods as ['value' => $value]) {
             switch ($value) {
