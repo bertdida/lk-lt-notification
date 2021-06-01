@@ -125,6 +125,20 @@ class NotificationConfig extends Model
         }
     }
 
+    public static function setCachedContacts(array $contacts): void
+    {
+        foreach ($contacts as $contact) {
+            if (!$contact instanceof Contact) {
+                throw new \ValueError;
+            }
+        }
+
+        self::$cachedContacts = array_reduce($contacts, function (array $carry, Contact $contact): array{
+            $carry[$contact->provider_user_id] = $contact;
+            return $carry;
+        }, []);
+    }
+
     private function sendEmail(array $message): void
     {
         $mail = new PHPMailer(true);
