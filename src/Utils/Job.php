@@ -7,6 +7,7 @@ use LTN\Models\Contact;
 use LTN\Models\Engagements;
 use LTN\Models\NotificationConfig;
 use LTN\Models\User;
+use LTN\Utils\Logger;
 
 class Job
 {
@@ -55,7 +56,7 @@ class Job
                 continue;
             }
 
-            print_r($this->getSummary($engagements));
+            Logger::save(json_encode($this->getSummary($engagements)));
         }
     }
 
