@@ -15,7 +15,7 @@ class Job
 
     private $isHourly;
 
-    public function __construct(int $userId, bool $isHourly)
+    public function __construct(int $userId, bool $isHourly = false)
     {
         $this->user = User::find($userId);
         $this->isHourly = $isHourly;
