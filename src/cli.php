@@ -12,7 +12,7 @@ $getOpt->addOptions([
         ->setArgument(new Argument(null, 'is_numeric', 'userid')),
 
     Option::create(null, 'ishourly', GetOpt::NO_ARGUMENT)
-        ->setDescription('If set hourly engagements will be checked, otherwise daily'),
+        ->setDescription('If set hourly engagements will be summarized, otherwise daily'),
 ]);
 
 try {
