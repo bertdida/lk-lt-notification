@@ -3,6 +3,7 @@
 namespace LTN\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use LTN\Models\Engagements;
 use LTN\Models\LiveTrackerFilter;
 use LTN\Models\PushSubscriber;
 use LTN\Models\User;
@@ -339,16 +340,7 @@ class NotificationConfig extends Model
             }
 
             if ($this->stringContains($text, 'reactions')) {
-                $carry = array_merge($carry, [
-                    'like',
-                    'love',
-                    'haha',
-                    'wow',
-                    'sad',
-                    'angry',
-                    'support',
-                    'care',
-                ]);
+                $carry = array_merge($carry, Engagements::$facebookReactions);
             }
 
             if ($this->stringContains($text, 'inbox')) {
