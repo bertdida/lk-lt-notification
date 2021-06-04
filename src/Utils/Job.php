@@ -70,6 +70,10 @@ class Job
                 $carry[$pageName] = [];
             }
 
+            if (in_array($engagement['activity_type'], Engagements::$facebookReactions)) {
+                $engagement['activity_type'] = 'reaction';
+            }
+
             if (!array_key_exists($engagement['activity_type'], $carry[$pageName])) {
                 $carry[$pageName][$engagement['activity_type']] = 0;
             }
