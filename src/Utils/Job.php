@@ -7,7 +7,6 @@ use LTN\Models\Contact;
 use LTN\Models\Engagements;
 use LTN\Models\NotificationConfig;
 use LTN\Models\User;
-use LTN\Utils\Logger;
 
 class Job
 {
@@ -56,13 +55,28 @@ class Job
                 continue;
             }
 
-            Logger::save(json_encode($this->getSummary($engagements)));
+            $summary = $this->getSummary($engagements);
+            $data = [
+                '%recipient%' => $this->user->name,
+                '%summaries%' => $this->summaryToString($summary),
+                '%summaries_html%' => $this->summaryToString($summary, true),
+                '%frequency%' => $this->isHourly ? 'hourly' : 'daily',
+            ];
+
+            $emailTemplate = file_get_contents(ROOT_DIR . '/src/templates/summary/message.html');
+            $textTemplate = file_get_contents(ROOT_DIR . '/src/templates/summary/message.txt');
+
+            $message['subject'] = "LeadKlozer: {$data['%frequency%']} summaries";
+            $message['email_content'] = strtr($emailTemplate, $data);
+            $message['text_content'] = strtr($textTemplate, $data);
+
+            $config->sendMessage($message);
         }
     }
 
     private function getSummary(array $engagements): array
     {
-        return array_reduce($engagements, function (array $carry, array $engagement) {
+        $summary = array_reduce($engagements, function (array $carry, array $engagement) {
             $page = json_decode($engagement['social_page'], true);
             $pageName = $page['name'];
 
@@ -81,5 +95,44 @@ class Job
             $carry[$pageName][$engagement['activity_type']] += 1;
             return $carry;
         }, []);
+
+        $retval = [];
+        $typePluralizedMap = [
+            'message' => 'messages',
+            'comment' => 'comments',
+            'reaction' => 'reactions',
+        ];
+
+        foreach ($summary as $pageName => $values) {
+            foreach ($values as $type => $count) {
+                if (array_key_exists($type, $typePluralizedMap)) {
+                    $type = ngettext($type, $typePluralizedMap[$type], $count);
+                    $retval[$pageName][] = "{$count} {$type}";
+                }
+            }
+        }
+
+        return $retval;
+    }
+
+    private function summaryToString(array $summary, bool $isHtml = false): string
+    {
+        $retval = '';
+        foreach ($summary as $pageName => $values) {
+            $values = array_map(function ($value) use ($isHtml) {
+                return $isHtml ? "<li>{$value}</li>" : "- {$value}";
+            }, $values);
+
+            $valuesString = implode("\n", $values);
+            if ($isHtml) {
+                $valuesString = sprintf("<ul>\n%s\n</ul>", $valuesString);
+                $pageName = "<strong>{$pageName}</strong>";
+            }
+
+            $retval .= "\n\n" . $pageName . "\n" . $valuesString;
+
+        }
+
+        return trim($retval);
     }
 }
