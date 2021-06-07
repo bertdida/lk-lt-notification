@@ -8,6 +8,7 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
+    entrypoint: ./entrypoint.sh
     volumes:
       - ./:/var/www
     networks:
@@ -16,6 +17,8 @@ services:
   server:
     image: nginx:alpine
     container_name: server
+    depends_on:
+      - app
     ports:
       - "5000:5000"
     volumes:
