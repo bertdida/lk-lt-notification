@@ -26,7 +26,10 @@ class Job
             return;
         }
 
-        $configs = $this->user->notificationConfigs;
+        $configs = $this->user->notificationConfigs->filter(function (NotificationConfig $config) {
+            return $this->isConfigValid($config);
+        });
+
         if (empty($configs)) {
             return;
         }
@@ -47,6 +50,10 @@ class Job
         NotificationConfig::setCachedContacts($contacts);
 
         foreach ($configs as $config) {
+            if (!$this->isConfigValid($config)) {
+                continue;
+            }
+
             $configEngagements = array_filter($engagements, function ($engagement) use ($config) {
                 return $config->test($engagement);
             });
@@ -72,6 +79,13 @@ class Job
 
             $config->sendMessage($message);
         }
+    }
+
+    private function isConfigValid(NotificationConfig $config): bool
+    {
+        $frequencies = json_decode($config->frequencies, true);
+        $frequencyValues = array_column($frequencies, 'value');
+        return in_array($this->isHourly ? 'hourly' : 'daily', $frequencyValues);
     }
 
     private function getSummary(array $engagements): array
