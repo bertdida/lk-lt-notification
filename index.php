@@ -7,6 +7,7 @@ use Dotenv\Dotenv;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use LTN\Controllers\NotificationController;
 use LTN\Controllers\PingController;
+use LTN\Controllers\SummaryController;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
 use Slim\Routing\RouteCollectorProxy;
@@ -60,6 +61,7 @@ $errorMiddleware->setDefaultErrorHandler($customErrorHandler);
 
 $app->get('/ping', PingController::class . ':get');
 $app->group('/api', function (RouteCollectorProxy $group) {
+    $group->get('/summary', SummaryController::class . ':get');
     $group->post('/notification', NotificationController::class . ':post');
 });
 
