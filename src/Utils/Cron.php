@@ -15,11 +15,16 @@ class Cron
         $this->isHourly = $isHourly;
     }
 
-    public function execute(): void
+    public function execute(int $userId = null): void
     {
-        $stmt = $this->db->pdo->query('SELECT id FROM users WHERE status LIMIT 2');
-        $commandFormat = 'php index.php %s %s';
+        if (is_null($userId)) {
+            $stmt = $this->db->pdo->query('SELECT id FROM users WHERE status LIMIT 1');
+        } else {
+            $stmt = $this->db->pdo->prepare('SELECT id FROM users WHERE status AND id = :id LIMIT 1');
+            $stmt->execute(['id' => $userId]);
+        }
 
+        $commandFormat = 'php index.php %s %s';
         while ($row = $stmt->fetch()) {
             $command = sprintf($commandFormat, "--userid={$row['id']}", $this->isHourly ? '--ishourly' : '');
             $this->execInBackground($command);
