@@ -26,7 +26,7 @@ class Job
 
     public function run()
     {
-        if (is_null($this->user)) {
+        if (!$this->user instanceof User) {
             return;
         }
 
