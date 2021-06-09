@@ -9,6 +9,10 @@ class Cron
 
     private $isHourly = false;
 
+    private $testUserIds = [
+        1, 3, 1436, 2701,
+    ];
+
     public function __construct(Db $db, bool $isHourly = false)
     {
         $this->db = $db;
@@ -17,18 +21,28 @@ class Cron
 
     public function execute(int $userId = null): void
     {
-        if (is_null($userId)) {
-            $stmt = $this->db->pdo->query('SELECT id FROM users WHERE status LIMIT 1');
-        } else {
-            $stmt = $this->db->pdo->prepare('SELECT id FROM users WHERE status AND id = :id LIMIT 1');
-            $stmt->execute(['id' => $userId]);
-        }
-
+        $userIds = !is_null($userId) ? [$userId] : $this->getUserIds();
         $commandFormat = 'php index.php %s %s';
-        while ($row = $stmt->fetch()) {
-            $command = sprintf($commandFormat, "--userid={$row['id']}", $this->isHourly ? '--ishourly' : '');
+
+        foreach ($userIds as $id) {
+            $command = sprintf($commandFormat, "--userid={$id}", $this->isHourly ? '--ishourly' : '');
             $this->execInBackground($command);
         }
+    }
+
+    private function getUserIds(): array
+    {
+        if (empty($this->testUserIds)) {
+            $stmt = $this->db->pdo->query('SELECT id FROM users WHERE status LIMIT 10');
+
+        } else {
+            $in = str_repeat('?,', count($this->testUserIds) - 1) . '?';
+            $stmt = $this->db->pdo->prepare("SELECT id FROM users WHERE status AND id IN ({$in})");
+            $stmt->execute($this->testUserIds);
+        }
+
+        $result = $stmt->fetchAll();
+        return array_column($result, 'id');
     }
 
     /**
