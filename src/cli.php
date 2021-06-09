@@ -24,4 +24,4 @@ try {
 
 $userId = (int) $getOpt->getOption('userid');
 $isHourly = $getOpt->getOption('ishourly') !== null;
-(new Job($userId, $isHourly))->run();
+(new Job($capsule, $userId, $isHourly))->run();

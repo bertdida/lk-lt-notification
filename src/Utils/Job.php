@@ -3,6 +3,7 @@
 namespace LTN\Utils;
 
 use Carbon\Carbon;
+use Illuminate\Database\Capsule\Manager as Capsule;
 use LTN\Models\Contact;
 use LTN\Models\Engagements;
 use LTN\Models\NotificationConfig;
@@ -14,8 +15,11 @@ class Job
 
     private $isHourly;
 
-    public function __construct(int $userId, bool $isHourly = false)
+    private $capsule;
+
+    public function __construct(Capsule $capsule, int $userId, bool $isHourly = false)
     {
+        $this->capsule = $capsule;
         $this->user = User::find($userId);
         $this->isHourly = $isHourly;
     }
@@ -26,7 +30,10 @@ class Job
             return;
         }
 
-        $configs = $this->user->notificationConfigs->filter(function (NotificationConfig $config) {
+        $connectionName = $this->getConnectionName();
+
+        $configs = NotificationConfig::on($connectionName)->where('user_id', $this->user->id)->get();
+        $configs = $configs->filter(function (NotificationConfig $config) {
             return $this->isConfigValid($config);
         });
 
@@ -35,14 +42,16 @@ class Job
         }
 
         $subHours = $this->isHourly ? 1 : 24;
-        $engagements = Engagements::where('user_id', $this->user->id)
+        $engagements = Engagements::on($connectionName)
+            ->where('user_id', $this->user->id)
             ->where('timestampint', '>=', Carbon::now()->subHours($subHours)->timestamp)
             ->where('activity_type', '!=', 'manual_entry')
             ->get()
             ->toArray();
 
         $contactIds = array_unique(array_column($engagements, 'activity_from_id'));
-        $contacts = Contact::where('user_id', $this->user->id)
+        $contacts = Contact::on($connectionName)
+            ->where('user_id', $this->user->id)
             ->whereIn('provider_user_id', $contactIds)
             ->get()
             ->all();
@@ -79,6 +88,35 @@ class Job
 
             $config->sendMessage($message);
         }
+    }
+
+    private function getConnectionName(string $default = 'default'): string
+    {
+        $dbName = $this->user->db_name;
+
+        if (empty($dbName)) {
+            return $default;
+        }
+
+        $query = 'SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?';
+        $db = Capsule::select($query, [$dbName]);
+
+        if (empty($db)) { // database doesn't exists
+            return $default;
+        }
+
+        $this->capsule->addConnection([
+            'host' => $_ENV['DB_HOST'],
+            'database' => $dbName,
+            'username' => $_ENV['DB_USERNAME'],
+            'password' => $_ENV['DB_PASSWORD'],
+            'driver' => 'mysql',
+            'charset' => 'utf8',
+            'collation' => 'utf8_unicode_ci',
+            'prefix' => '',
+        ], $dbName);
+
+        return $dbName;
     }
 
     private function isConfigValid(NotificationConfig $config): bool
