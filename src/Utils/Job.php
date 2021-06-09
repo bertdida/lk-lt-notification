@@ -49,6 +49,10 @@ class Job
             ->get()
             ->toArray();
 
+        if (empty($engagements)) {
+            return;
+        }
+
         $contactIds = array_unique(array_column($engagements, 'activity_from_id'));
         $contacts = Contact::on($connectionName)
             ->where('user_id', $this->user->id)
