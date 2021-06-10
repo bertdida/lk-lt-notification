@@ -23,7 +23,7 @@ class NotificationController
 
         $user = User::where('id', $payload['user_id'])->first();
 
-        if (is_null($user)) {
+        if (!$user instanceof User) {
             return $response->withJson([
                 'data' => [
                     'error' => 'User not found',
