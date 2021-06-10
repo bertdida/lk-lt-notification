@@ -205,14 +205,7 @@ class NotificationConfig extends Model
             ],
         ]);
 
-        $hostname = '';
-        if (array_key_exists('REQUEST_METHOD', $_SERVER)) {
-            $hostname = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . "://$_SERVER[HTTP_HOST]";
-        }
-
         $notificationPayload = [
-            'badge' => $hostname . '/public/assets/badge.png',
-            'icon' => $hostname . '/public/assets/icon.png',
             'title' => $message['subject'],
             'message' => $message['text_content'],
             'url' => null,
